@@ -2,24 +2,31 @@
 # By Maddie London, Sophie Borchart, Katie Encinas
 import math
 import pandas as pd
+import numpy as np
 import time
+import re
+import csv
 
 def parse():
   filename = input('Please enter the filename containing your data, including the .csv extension: ')
   print('Parsing...')
   data = pd.read_csv(filename, header = None)
 
-  year = data[0][0] # get data year
-
   state_name = data[0].dropna()
-  state_name = state_name.drop(state_name.index[0]) # store the state names 
+  year = 0
+  # If the user had provided the year (optional)
+  if hasNumbers(data[0][0]):
+    year = data[0][0] # get year
+    state_name = state_name.drop(state_name.index[0]) # store the state names 
   state_population = data[1].dropna() # store the state populations 
-
   total_population = 0
   # calculate the total population
   for s in state_population:
     total_population += s
-  return year, state_name, state_population, int(total_population)
+  return year, state_name, state_population.tolist(), int(total_population)
+
+def hasNumbers(inputString):
+  return bool(re.search(r'\d', inputString))
 
 def getQuotient(state_pop, divisor):
   quotient = state_pop/divisor
@@ -27,15 +34,16 @@ def getQuotient(state_pop, divisor):
     return 1
   return quotient
 
-
-def huntingtonHiill(house_size, state_pop, total_pop):
-  print('Calculating divisor...')
+def huntingtonHill(house_size, state_pop, total_pop):
+  # print('Calculating divisor...')
   guess = total_pop/len(state_pop)
   apportionments = []
+  
   # try higher d values than guess
-  for d in range(int(guess), int(max(state_pop))):
+  for d in range(int(guess), int(total_pop)):
     total_seats = 0
     apportionments = []
+    apportionments.append('Huntington Hill')
     for s in state_pop:
       quotient = getQuotient(s, d)
       mean = getGeometricMean(quotient)
@@ -43,12 +51,14 @@ def huntingtonHiill(house_size, state_pop, total_pop):
       total_seats += seat
       apportionments.append(seat)
     if int(total_seats) == int(house_size):
-      print('Collecting apportionment data...')
-      return d, apportionments
+      # print('Collecting Huntington Hill apportionment data...')
+      return apportionments
+ 
   # try lower d values than guess
-  for d in range(int(min(state_pop)), int(guess)):
+  for d in range(1, int(guess)):
     total_seats = 0
     apportionments = []
+    apportionments.append('Huntington Hill')
     for s in state_pop:
       quotient = getQuotient(s, d)
       mean = getGeometricMean(quotient)
@@ -56,8 +66,10 @@ def huntingtonHiill(house_size, state_pop, total_pop):
       total_seats += seat
       apportionments.append(seat)
     if int(total_seats) == int(house_size):
-      print('Collecting apportionment data...')
-      return d, apportionments
+      # print('Collecting Huntington Hill apportionment data...')
+      return apportionments
+  
+  return 0
 
 def getGeometricMean(quotient):
   roundUp = math.ceil(quotient)
@@ -74,12 +86,82 @@ def roundOnGeoMean(quotient, mean):
     seat = math.ceil(quotient)
   return seat
 
-# def webster():
+def webster(house_size, state_pop, total_pop):
+  # print('Calculating divisor...')
+  guess = total_pop/len(state_pop)
+  apportionments = []
+  
+  # try higher d values than guess
+  for d in range(int(guess), int(total_pop)):
+    total_seats = 0
+    apportionments = []
+    apportionments.append('Webster')
+    for s in state_pop:
+      quotient = getQuotient(s, d)
+      seat = round(quotient)
+      total_seats += seat
+      apportionments.append(seat)
+    if int(total_seats) == int(house_size):
+      # print('Collecting Webster apportionment data...')
+      return apportionments
+  
+  # try lower d values than guess
+  for d in range(1, int(guess)):
+    total_seats = 0
+    apportionments = []
+    apportionments.append('Webster')
+    for s in state_pop:
+      quotient = getQuotient(s, d)
+      seat = round(quotient)
+      total_seats += seat
+      apportionments.append(seat)
+    if int(total_seats) == int(house_size):
+      # print('Collecting Webster apportionment data...')
+      return apportionments
+    
+  return 0
+
+def test(filename, min, max, type, state_name, state_pop, total_pop):
+  
+  list_of_apportionments = []
+  state_name.insert(0, 'State')
+  # print(state_name)
+  list_of_apportionments.append(state_name)
+  
+  # Perform Huntington Hill apportionments
+  if type == 'hh':
+    for i in range(min, max):
+      list_of_apportionments.append(huntingtonHill(i, state_pop, total_pop))
+  # Perform Webster apportionments
+  elif type == 'w':
+    for i in range(min, max):
+      list_of_apportionments.append(webster(i, state_pop, total_pop))
+  # Perform both Huntington Hill and Webster apportionments
+  elif type == 'b':
+    for i in range(min, max):
+      list_of_apportionments.append(huntingtonHill(i, state_pop, total_pop))
+      list_of_apportionments.append(webster(i, state_pop, total_pop))
+  
+  rows = np.array(list_of_apportionments).T
+  
+  with open(filename, 'w') as csvfile: 
+    csvwriter = csv.writer(csvfile)
+    csvwriter.writerows(rows) 
+  return 0
 
 def main():
   year, state_name, state_population, total_pop = parse()
-  house_size = input('Please enter your desired house size: ')
-  print(huntingtonHiill(house_size, state_population, total_pop))
+  state_name = state_name.tolist()
+  # house_size = input('Please enter your desired house size: ')
+  # print(huntingtonHill(house_size, state_population, total_pop))
+  # divisor, apportionments = (webster(house_size, state_population, total_pop))
+  # print(state_name, apportionments)
+  # print(list(zip(state_name, apportionments)))
+  apportionment_type = 'b'
+  output_filename = 'output.csv'
+  test(output_filename, 50, 55, apportionment_type, state_name, state_population, total_pop)
+
+  return 0
 
 if __name__ == '__main__':
   start_time = time.time()
