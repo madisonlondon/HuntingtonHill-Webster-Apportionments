@@ -145,21 +145,20 @@ def test(filename, min, max, type, state_name, state_pop, total_pop):
   rows = np.array(list_of_apportionments).T
   
   with open(filename, 'w') as csvfile: 
+    print('Writing to output file...')
     csvwriter = csv.writer(csvfile)
     csvwriter.writerows(rows) 
+    print(f'Results written to {filename}')
   return 0
 
 def main():
   year, state_name, state_population, total_pop = parse()
   state_name = state_name.tolist()
-  # house_size = input('Please enter your desired house size: ')
-  # print(huntingtonHill(house_size, state_population, total_pop))
-  # divisor, apportionments = (webster(house_size, state_population, total_pop))
-  # print(state_name, apportionments)
-  # print(list(zip(state_name, apportionments)))
+  min = input('Please enter your desired minimum house size: ')
+  max = input('Please enter your desired maximum house size: ')
   apportionment_type = 'b'
   output_filename = 'output.csv'
-  test(output_filename, 50, 55, apportionment_type, state_name, state_population, total_pop)
+  test(output_filename, int(min), int(max), apportionment_type, state_name, state_population, total_pop)
 
   return 0
 
